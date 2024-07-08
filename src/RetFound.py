@@ -1,11 +1,17 @@
 import torch
 import torch.nn as nn
-#from timm.models.layers import trunc_normal_
+from timm.models.layers import trunc_normal_
 import timm.models.vision_transformer
+
 from functools import partial
 import gdown
 import os
 
+
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+# Partly revised by YZ @UCL&Moorfields
+# --------------------------------------------------------
 class VisionTransformer(timm.models.vision_transformer.VisionTransformer):
     """ Vision Transformer with support for global average pooling
 
@@ -52,7 +58,7 @@ class VisionTransformer(timm.models.vision_transformer.VisionTransformer):
             outcome = x[:, 0]
 
         return outcome
-
+    
 
 def vit_large_patch16(**kwargs):
     """Instantiate a Vision Transformer model with specific configuration.
@@ -64,6 +70,7 @@ def vit_large_patch16(**kwargs):
         patch_size=16, embed_dim=1024, depth=24, num_heads=16, mlp_ratio=4, qkv_bias=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
     return model
+
 
 
 # --------------------------------------------------------
@@ -100,6 +107,11 @@ def interpolate_pos_embed(model, checkpoint_model):
             new_pos_embed = torch.cat((extra_tokens, pos_tokens), dim=1)
             checkpoint_model['pos_embed'] = new_pos_embed
 
+            
+            
+            
+            
+
 
 # Create a new model with the desired modifications
 class ModifiedRetFound(nn.Module):
@@ -115,8 +127,9 @@ class ModifiedRetFound(nn.Module):
         self.num_classes = num_classes
 
         # Extract the backbone without the top layer
-        self.backbone = nn.Sequential(*list(backbone.children())[:-1])
-
+        #self.backbone = nn.Sequential(*list(backbone.children())[:-1])
+        
+        self.backbone = backbone
         # New classifier head
         if self.num_classes:
             self.classifier = nn.Linear(1024, num_classes)
@@ -131,10 +144,11 @@ class ModifiedRetFound(nn.Module):
             torch.Tensor: Output tensor.
         """
         # Backbone
-        x = self.backbone(x)
-
+        
+        x = self.backbone.forward_features(x)
+        
         # Average pooling
-        x = x[:, 1:, :].mean(dim=1)  # global pool without cls token
+        #x = x[:, 1:, :].mean(dim=1)  # global pool without cls token
 
         # Classifier head
         if self.num_classes:
@@ -155,11 +169,10 @@ def get_retfound(weights=None, num_classes=3, backbone=False):
     """
     # call the model
     model = vit_large_patch16(
-        num_classes=3,
+        num_classes=num_classes,
         drop_path_rate=0.2,
-        global_pool=True
+        global_pool=True,
     )
-
     
     if not weights:
         download_weights = input("Do you want to download the pretrained weights? (y/n): ")
@@ -177,6 +190,7 @@ def get_retfound(weights=None, num_classes=3, backbone=False):
             print("Please provide the path to the pretrained weights file.")
             return
 
+
     # load RETFound weights
     checkpoint = torch.load(weights, map_location='cpu')
     checkpoint_model = checkpoint['model']
@@ -185,16 +199,22 @@ def get_retfound(weights=None, num_classes=3, backbone=False):
         if k in checkpoint_model and checkpoint_model[k].shape != state_dict[k].shape:
             print(f"Removing key {k} from pretrained checkpoint")
             del checkpoint_model[k]
+            
+            
 
     # interpolate position embeddings for high-resolution# interpolate position embedding
     interpolate_pos_embed(model, checkpoint_model)
+
     # load pre-trained model
     msg = model.load_state_dict(checkpoint_model, strict=False)
-
+    
     assert set(msg.missing_keys) == {'head.weight', 'head.bias', 'fc_norm.weight', 'fc_norm.bias'}
 
     # manually initialize fc layer
-    # trunc_normal_(model.head.weight, std=2e-5)
+    trunc_normal_(model.head.weight, std=2e-5)
+
+    print("Model = %s" % str(model))
+
 
     # Define the number of classes for the new head
     if backbone:    

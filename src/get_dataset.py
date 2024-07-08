@@ -126,11 +126,19 @@ def get_dataset(data_dir, download=False, info=False):
         #print(df.describe())
     
     #
+    '''
     columns = ['diabetic_retinopathy', 'macular_edema', 'scar', 'nevus',
                'amd', 'vascular_occlusion', 'hypertensive_retinopathy', 
                'drusens', 'hemorrhage', 'retinal_detachment',
                'myopic_fundus', 'increased_cup_disc', 'other'
               ]
+    '''
+    columns = ['patient', 'age', 'sex', 'dm_time', 'insulin', 'insulin_time',
+       'oraltreatment_dm', 'systemic_hypertension', 'insurance',
+       'educational_level', 'alcohol_consumption', 'smoking', 'obesity',
+       'vascular_disease', 'acute_myocardial_infarction', 'nephropathy',
+       'neuropathy', 'diabetic_foot', 'file', 'laterality', 'final_artifacts',
+       'final_quality', 'final_icdr', 'final_edema']
     
     df['normality'] = df.apply(check_columns, args=(columns,),  axis=1)
 
@@ -140,9 +148,10 @@ def get_dataset(data_dir, download=False, info=False):
 def plot_labels_distribution(df, column, title=None):
     # Get value counts for the new categories
     category_counts = df[column].value_counts()
-
+    
     # Plotting the value counts
-    category_counts.plot(kind='bar', rot=0, color='skyblue')
+    #category_counts.plot(kind='bar', rot=0, color='skyblue')
+    plt.bar(category_counts.index, category_counts.values, color='skyblue')
     plt.xlabel(f'{column} Categories')
     plt.ylabel('Count')
     if title:
@@ -204,6 +213,7 @@ def split_data(df, column, split, undersample=False, undersample_ratio=1.0, rand
 
     plt.figure(figsize=(10, 5))
     plt.subplot(1, 2, 1)
+    
     plot_labels_distribution(train_data, column, title='Train Label Distribution')
     plt.subplot(1, 2, 2)
     plot_labels_distribution(test_data, column, title='Test Label Distribution')

@@ -1,5 +1,6 @@
 from torchvision import models
 from transformers import ConvNextV2ForImageClassification
+
 from transformers import ViTModel
 from transformers import CLIPModel
 import torch
@@ -123,19 +124,22 @@ class FoundationalCVModel(torch.nn.Module):
             self.backbone = torch.hub.load('facebookresearch/dinov2', backbone_path[backbone])
 
             
-        elif backbone in ['convnextv2_tiny', 'convnextv2_base', 'convnextv2_large']:
+        elif backbone in ['convnextv2_tiny', 'convnextv2_base', 'convnextv2_large','convnextv2_384']:
             # Repo: https://huggingface.co/facebook/convnextv2-base-22k-224
             # Paper: https://arxiv.org/abs/2301.00808
             backbone_path = {
                 'convnextv2_tiny': 'facebook/convnextv2-tiny-22k-224',
                 'convnextv2_base': 'facebook/convnextv2-base-22k-224',
                 'convnextv2_large': 'facebook/convnextv2-large-22k-224',
+                'convnextv2_384':'facebook/convnextv2-large-22k-384'
             }
             
             self.backbone = ConvNextV2ForImageClassification.from_pretrained(backbone_path[backbone])
             self.backbone = nn.Sequential(*list(self.backbone.children())[:-1])
-            
-
+        elif backbone in ['swinv2']:
+            from transformers import Swinv2ForImageClassification
+            self.backbone = SwinV2ForImageClassification.from_pretrained("microsoft/swinv2-large-patch4-window12to16-192to256-22kto1k-ft")
+            self.backbone = nn.Sequential(*list(self.backbone.children())[:-1])
         elif backbone == 'convnext_tiny':
             # Get the backbone
             self.backbone = models.convnext.convnext_tiny(pretrained=True)
@@ -194,7 +198,7 @@ class FoundationalCVModel(torch.nn.Module):
             clip_model = CLIPModel.from_pretrained(backbone_path[backbone])
             # Get image part of CLIP model
             self.backbone = CLIPImageEmbeddings(clip_model.vision_model, clip_model.visual_projection)
-        
+
         elif backbone == 'retfound':
             self.backbone = get_retfound(weights=weights, backbone=True)
             
@@ -318,18 +322,18 @@ class FoundationalCVModelWithClassifier(torch.nn.Module):
         # Add the linear layer and ReLU activation if 'hidden' is an integer
         if isinstance(hidden, int):
             layers.append(nn.Linear(output_dim, hidden))
-            layers.append(nn.ReLU())
-            layers.append(nn.Dropout(p=0.2))
-            layers.append(nn.BatchNorm1d(hidden))
+            # layers.append(nn.ReLU())
+            # layers.append(nn.Dropout(p=0.2))
+            # layers.append(nn.BatchNorm1d(hidden))
             output_dim = hidden
             
         # Add the linear layer and ReLU activation for each element in 'hidden' if it's a list
         elif isinstance(hidden, list):
             for h in hidden:
                 layers.append(nn.Linear(output_dim, h))
-                layers.append(nn.ReLU())
-                layers.append(nn.Dropout(p=0.2))
-                layers.append(nn.BatchNorm1d(h))
+                # layers.append(nn.ReLU())
+                # layers.append(nn.Dropout(p=0.2))
+                # layers.append(nn.BatchNorm1d(h))
                 output_dim = h
         
         if hidden:

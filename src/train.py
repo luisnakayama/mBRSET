@@ -3,7 +3,7 @@ import torch.nn as nn
 import os
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, confusion_matrix, accuracy_score
 
 
 def train(model, train_dataloader, val_dataloader, criterion, optimizer, num_epochs=50, backbone='Retina', save=False, device='cpu', patience=7):
@@ -34,7 +34,8 @@ def train(model, train_dataloader, val_dataloader, criterion, optimizer, num_epo
             labels = batch['labels'].to(device)
 
             optimizer.zero_grad()
-            outputs = model(inputs)
+            
+            outputs = model(inputs).logits
 
             if binary:
                 loss = criterion(outputs, labels.float())
@@ -58,7 +59,7 @@ def train(model, train_dataloader, val_dataloader, criterion, optimizer, num_epo
                 val_inputs = val_batch['image'].to(device)
                 val_labels = val_batch['labels'].to(device)
 
-                val_outputs = model(val_inputs)
+                val_outputs = model(val_inputs).logits
 
                 if binary:
                     val_loss += criterion(val_outputs, val_labels.float()).item()
@@ -73,10 +74,11 @@ def train(model, train_dataloader, val_dataloader, criterion, optimizer, num_epo
         val_losses.append(val_loss)
 
         f1 = f1_score(all_labels, all_preds, average='macro')
+        acc = accuracy_score(all_labels, all_preds)
         f1_scores.append(f1)
-
-        print(f'Epoch {epoch + 1}, Train Loss: {avg_train_loss}, Val Loss: {val_loss}, F1 Score: {f1}')
-
+        confusion_matrix_sc = confusion_matrix(all_labels, all_preds)
+        print(f'Epoch {epoch + 1}, Train Loss: {avg_train_loss}, Val Loss: {val_loss}, F1 Score: {f1}, acc{acc}')
+        print(f"cm{confusion_matrix_sc}")
         if f1 > best_model_info['f1_score']:
             best_model_info['epoch'] = epoch + 1
             best_model_info['state_dict'] = model.state_dict()

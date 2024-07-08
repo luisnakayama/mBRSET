@@ -169,7 +169,7 @@ class BinaryBRSETDataset(Dataset):
         Returns:
         tuple: A tuple containing the preprocessed image as a PyTorch tensor and its associated label.
         """
-        img_name = self.dataframe['image_id'].iloc[idx] + ('.jpg')
+        img_name = self.dataframe['image_id'].iloc[idx] #+ ('.jpg')
         img_path = os.path.join(self.folder_path, img_name)
         img = Image.open(img_path).convert("RGB")
         img = self.transform(img)
@@ -286,7 +286,7 @@ class BRSETDataset(Dataset):
         # Images:
         img_path = self.image_data[idx]
 
-        img = Image.open( os.path.join(self.images_dir, img_path + '.jpg') ).convert("RGB")
+        img = Image.open( os.path.join(self.images_dir, img_path) ).convert("RGB")
         img = self.transform(img)
 
         return {

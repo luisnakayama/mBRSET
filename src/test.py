@@ -63,7 +63,7 @@ def test_model(y_test, y_pred, y_prob=None):
         plt.title('Confusion Matrix')
         # Display plot
         plt.show()
-
+    '''
     #create ROC curve
     from sklearn.preprocessing import LabelBinarizer
     fig, ax = plt.subplots(figsize=(15, 15))
@@ -128,7 +128,7 @@ def test_model(y_test, y_pred, y_prob=None):
         plt.title("Extension of Receiver Operating Characteristic\nto One-vs-Rest multiclass")
         plt.legend(loc='upper left', bbox_to_anchor=(1, 1), bbox_transform=plt.gcf().transFigure)
         plt.show()
-        
+    '''
     # Classification report
     # Create a classification report of the test predictions
     cr = classification_report(y_test, y_pred)
